@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tip-Out Calculator — bartender / server shift tool</title>
+<style>
+  :root { --accent:#7a2e8f; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; margin:0; color:#222; background:#f7f3f9; }
+  header { background:var(--accent); color:#fff; padding:14px 20px; }
+  header h1 { margin:0; font-size:20px; }
+  header p { margin:4px 0 0; font-size:13px; opacity:.85; }
+  .note { background:#f3e8f7; border-bottom:2px solid var(--accent); padding:10px 20px; font-size:13px; }
+  main { max-width:1100px; margin:0 auto; padding:20px; display:grid; gap:20px; grid-template-columns:1fr 1fr; }
+  @media (max-width:900px){ main{grid-template-columns:1fr;} }
+  .card { background:#fff; border-radius:8px; padding:18px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  .card h2 { margin:0 0 12px; font-size:16px; color:var(--accent); }
+  label { display:block; font-size:12px; font-weight:600; margin:10px 0 4px; color:#444; }
+  input, select { width:100%; padding:8px; font-size:14px; border:1px solid #ccc; border-radius:5px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .rule { display:grid; grid-template-columns:1.4fr 1fr 1fr 0.8fr auto; gap:8px; align-items:end; margin-bottom:8px; }
+  @media (max-width:600px){ .rule{grid-template-columns:1fr 1fr;} }
+  .btn { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:11px 18px; font-size:15px; margin-top:14px; cursor:pointer; }
+  .btn.secondary { background:#6b5a70; }
+  .btn.small { padding:6px 10px; font-size:13px; margin:2px 4px 2px 0; }
+  .error { color:#b00020; font-size:13px; margin-top:6px; }
+  #results table { width:100%; border-collapse:collapse; margin-top:8px; font-size:14px; }
+  #results th, #results td { border-bottom:1px solid #ddd; padding:8px 6px; text-align:left; }
+  #results td.num, #results th.num { text-align:right; white-space:nowrap; }
+  #results .takehome { font-size:20px; font-weight:700; color:var(--accent); }
+  .hist { font-size:13px; }
+  .hist td, .hist th { padding:6px; border-bottom:1px solid #eee; }
+  #copy-msg { font-size:13px; color:var(--accent); margin-top:6px; }
+  footer.page { text-align:center; font-size:12px; color:#777; padding:16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Tip-Out Calculator</h1>
+  <p>End-of-shift math in 30 seconds: tip-outs by role, per-person payouts, your take-home, shift history.</p>
+</header>
+<div class="note">
+  Built for bartenders &amp; servers. Set your house's tip-out rules once — they save in this browser.
+  Cash tips + card tips tracked separately for tax time. Nothing leaves this device.
+</div>
+<main>
+  <div>
+    <div class="card">
+      <h2>Shift numbers</h2>
+      <div class="grid2">
+        <div><label>Date</label><input id="s-date" type="date"></div>
+        <div><label>Venue / shift label</label><input id="s-venue" placeholder="Friday night bar"></div>
+      </div>
+      <div class="grid2">
+        <div><label>Card tips $</label><input id="s-cardtips" inputmode="decimal" placeholder="0.00"></div>
+        <div><label>Cash tips $</label><input id="s-cashtips" inputmode="decimal" placeholder="0.00"></div>
+      </div>
+      <div class="grid2">
+        <div><label>Total sales $ (optional)</label><input id="s-sales" inputmode="decimal" placeholder="0.00"></div>
+        <div><label>Food sales $ (optional)</label><input id="s-foodsales" inputmode="decimal" placeholder="0.00"></div>
+      </div>
+      <div class="grid2">
+        <div><label>Bar sales $ (optional)</label><input id="s-barsales" inputmode="decimal" placeholder="0.00"></div>
+        <div><label>Hours worked (optional)</label><input id="s-hours" inputmode="decimal" placeholder="e.g. 8"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Tip-out rules <span style="font-weight:normal;font-size:12px">(basis × % → pool, split among people)</span></h2>
+      <div id="rules"></div>
+      <button class="btn small secondary" id="add-rule">+ Add role</button>
+      <div id="shift-error"></div>
+      <button class="btn" id="calc">Calculate tip-out</button>
+    </div>
+  </div>
+  <div>
+    <div class="card" id="results">
+      <h2>Results</h2>
+      <div id="results-body"><p style="color:#888">Enter your shift and rules, then calculate.</p></div>
+      <button class="btn small secondary" id="copy-btn" style="display:none">Copy summary</button>
+      <button class="btn small secondary" id="save-shift" style="display:none">Save to history</button>
+      <div id="copy-msg"></div>
+    </div>
+    <div class="card">
+      <h2>Shift history</h2>
+      <div class="hist">
+        <table id="hist-table"><thead><tr><th>Date</th><th>Venue</th><th style="text-align:right">Tips</th><th style="text-align:right">Take-home</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+      <button class="btn small secondary" id="dl-csv">Download history CSV</button>
+    </div>
+  </div>
+</main>
+<footer class="page">Micro-SaaS prototype · local only · tip rules vary by house — confirm yours with a manager</footer>
+
+<script>
+(function(){
+"use strict";
+
+const App = {};
+
+App.toCents = function(s){
+  if (s === null || s === undefined || String(s).trim() === "") return 0;
+  const cleaned = String(s).replace(/[^0-9.\-]/g,"");
+  if (!/[0-9]/.test(cleaned)) return NaN; // garbage like "abc" is not $0
+  const n = Number(cleaned);
+  return isNaN(n) ? NaN : Math.round(n*100);
+};
+App.fmtCents = function(c){
+  c = Math.round(c); const neg = c < 0; c = Math.abs(c);
+  return (neg?"-$":"$") + Math.floor(c/100).toLocaleString("en-US") + "." + String(c%100).padStart(2,"0");
+};
+App.esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+/* Basis options for a tip-out rule. Basis amounts come from the shift inputs (cents). */
+App.BASES = [
+  { id:"tips",  label:"Total tips" },
+  { id:"sales", label:"Total sales" },
+  { id:"food",  label:"Food sales" },
+  { id:"bar",   label:"Bar sales" }
+];
+
+App.defaultRules = function(){
+  return [
+    { name:"Barback", basis:"tips", pct:"10", people:"1" },
+    { name:"Busser",  basis:"food", pct:"2",  people:"1" }
+  ];
+};
+
+/* Core math: pure function. shift amounts in cents; rules: [{name,basis,pct,people}].
+   Returns { totalTips, lines:[{name,poolCents,perPersonCents,people}], totalTipout, takeHome }. */
+App.calcTipout = function(shiftCents, rules){
+  const bases = {
+    tips:  shiftCents.cardTips + shiftCents.cashTips,
+    sales: shiftCents.sales,
+    food:  shiftCents.foodSales,
+    bar:   shiftCents.barSales
+  };
+  const lines = [];
+  let totalTipout = 0;
+  for (const r of rules) {
+    const basisAmt = bases[r.basis] || 0;
+    const pct = Number(r.pct);
+    const people = Math.max(1, Math.floor(Number(r.people) || 1));
+    const pool = Math.round(basisAmt * pct / 100);
+    totalTipout += pool;
+    lines.push({
+      name: r.name, basis: r.basis, pct, people,
+      poolCents: pool,
+      perPersonCents: Math.round(pool / people)
+    });
+  }
+  const totalTips = bases.tips;
+  return { totalTips, lines, totalTipout, takeHome: totalTips - totalTipout };
+};
+
+App.validateShift = function(s, rules){
+  const errs = [];
+  ["cardTips","cashTips","sales","foodSales","barSales"].forEach(k => {
+    if (isNaN(s[k])) errs.push("Check the " + k + " amount — not a valid number.");
+  });
+  if (s.cardTips + s.cashTips <= 0) errs.push("Enter at least some tips (card or cash).");
+  if (!s.date) errs.push("Shift date is required.");
+  rules.forEach((r,i) => {
+    if (!r.name.trim()) errs.push("Rule " + (i+1) + " needs a role name.");
+    const p = Number(r.pct);
+    if (isNaN(p) || p < 0 || p > 100) errs.push("Rule '" + (r.name||i+1) + "': percent must be 0–100.");
+    if (!App.BASES.some(b => b.id === r.basis)) errs.push("Rule '" + (r.name||i+1) + "': pick a basis.");
+  });
+  return errs;
+};
+
+App.summaryText = function(date, venue, calc){
+  const L = [];
+  L.push("TIP-OUT " + date + (venue ? " — " + venue : ""));
+  L.push("Total tips: " + App.fmtCents(calc.totalTips));
+  calc.lines.forEach(l => L.push(
+    l.name + ": " + App.fmtCents(l.poolCents) + " (" + l.pct + "% of " +
+    App.BASS_LABEL(l.basis) + (l.people > 1 ? ", " + l.people + " people = " + App.fmtCents(l.perPersonCents) + " ea" : "") + ")"
+  ));
+  L.push("Take-home: " + App.fmtCents(calc.takeHome));
+  return L.join("\n");
+};
+App.BASS_LABEL = function(id){ const b = App.BASES.find(x => x.id===id); return b ? b.label.toLowerCase() : id; };
+
+/* ---- storage ---- */
+App.KEY = "msaas_tipout_v1";
+App.loadState = function(){
+  try {
+    const s = localStorage.getItem(App.KEY);
+    if (s) { const o = JSON.parse(s); return { rules: o.rules || App.defaultRules(), history: o.history || [] }; }
+  } catch(e){}
+  return { rules: App.defaultRules(), history: [] };
+};
+App.saveState = function(st){
+  try { localStorage.setItem(App.KEY, JSON.stringify(st)); } catch(e){}
+};
+
+/* ---- DOM ---- */
+App.state = null;
+App.lastCalc = null;
+
+App.ruleRow = function(r){
+  const div = document.createElement("div");
+  div.className = "rule";
+  const opts = App.BASES.map(b => "<option value='"+b.id+"'"+(b.id===r.basis?" selected":"")+">"+b.label+"</option>").join("");
+  div.innerHTML =
+    '<div><label>Role</label><input class="rl-name" value="'+App.esc(r.name)+'"></div>' +
+    '<div><label>Basis</label><select class="rl-basis">'+opts+'</select></div>' +
+    '<div><label>%</label><input class="rl-pct" inputmode="decimal" value="'+App.esc(r.pct)+'"></div>' +
+    '<div><label>People</label><input class="rl-ppl" inputmode="numeric" value="'+App.esc(r.people)+'"></div>' +
+    '<div><button type="button" class="btn small secondary rl-del">✕</button></div>';
+  div.querySelector(".rl-del").onclick = () => { div.remove(); App.persistRules(); };
+  div.querySelectorAll("input,select").forEach(i => i.addEventListener("input", App.persistRules));
+  return div;
+};
+
+App.readRules = function(){
+  const rules = [];
+  document.querySelectorAll("#rules .rule").forEach(row => {
+    rules.push({
+      name: row.querySelector(".rl-name").value,
+      basis: row.querySelector(".rl-basis").value,
+      pct: row.querySelector(".rl-pct").value,
+      people: row.querySelector(".rl-ppl").value
+    });
+  });
+  return rules;
+};
+
+App.persistRules = function(){
+  App.state.rules = App.readRules();
+  App.saveState(App.state);
+};
+
+App.readShift = function(){
+  return {
+    date: document.getElementById("s-date").value,
+    venue: document.getElementById("s-venue").value.trim(),
+    cardTips: App.toCents(document.getElementById("s-cardtips").value),
+    cashTips: App.toCents(document.getElementById("s-cashtips").value),
+    sales: App.toCents(document.getElementById("s-sales").value),
+    foodSales: App.toCents(document.getElementById("s-foodsales").value),
+    barSales: App.toCents(document.getElementById("s-barsales").value),
+    hours: document.getElementById("s-hours").value.trim()
+  };
+};
+
+App.renderResults = function(shift, calc){
+  const rows = calc.lines.map(l =>
+    "<tr><td>" + App.esc(l.name) + " <span style='color:#888;font-size:12px'>(" + l.pct + "% of " + App.BASS_LABEL(l.basis) + ")</span></td>" +
+    '<td class="num">' + App.fmtCents(l.poolCents) + "</td>" +
+    '<td class="num">' + (l.people > 1 ? App.fmtCents(l.perPersonCents) + " × " + l.people : "—") + "</td></tr>"
+  ).join("");
+  let html =
+    "<table><tr><th>Tip-out</th><th class='num'>Pool</th><th class='num'>Per person</th></tr>" + rows +
+    "<tr><td><strong>Total tipped out</strong></td><td class='num'><strong>" + App.fmtCents(calc.totalTipout) + "</strong></td><td></td></tr></table>" +
+    "<p>Total tips: " + App.fmtCents(calc.totalTips) +
+    " <span style='color:#888'>(" + App.fmtCents(shift.cardTips) + " card + " + App.fmtCents(shift.cashTips) + " cash)</span></p>" +
+    "<p>Your take-home: <span class='takehome'>" + App.fmtCents(calc.takeHome) + "</span></p>";
+  const hrs = parseFloat(shift.hours);
+  if (hrs > 0) html += "<p style='color:#555'>Effective: " + App.fmtCents(Math.round(calc.takeHome / hrs)) + " / hour in tips.</p>";
+  document.getElementById("results-body").innerHTML = html;
+  document.getElementById("copy-btn").style.display = "inline-block";
+  document.getElementById("save-shift").style.display = "inline-block";
+};
+
+App.renderHistory = function(){
+  const tb = document.querySelector("#hist-table tbody");
+  tb.innerHTML = "";
+  App.state.history.slice().reverse().forEach(h => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td>" + App.esc(h.date) + "</td><td>" + App.esc(h.venue||"—") + "</td>" +
+      '<td style="text-align:right">' + App.fmtCents(h.totalTips) + "</td>" +
+      '<td style="text-align:right"><strong>' + App.fmtCents(h.takeHome) + "</strong></td>" +
+      '<td><button class="btn small secondary" data-hdel="' + h.id + '">✕</button></td>';
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll("[data-hdel]").forEach(b => {
+    b.onclick = () => {
+      App.state.history = App.state.history.filter(h => String(h.id) !== b.getAttribute("data-hdel"));
+      App.saveState(App.state); App.renderHistory();
+    };
+  });
+};
+
+App.init = function(){
+  App.state = App.loadState();
+  document.getElementById("s-date").value = new Date().toISOString().slice(0,10);
+  const rw = document.getElementById("rules");
+  App.state.rules.forEach(r => rw.appendChild(App.ruleRow(r)));
+  document.getElementById("add-rule").onclick = () => { rw.appendChild(App.ruleRow({name:"",basis:"tips",pct:"",people:"1"})); };
+
+  document.getElementById("calc").onclick = () => {
+    const shift = App.readShift();
+    const rules = App.readRules();
+    const errs = App.validateShift(shift, rules);
+    const box = document.getElementById("shift-error");
+    box.innerHTML = "";
+    if (errs.length) {
+      errs.forEach(e => { const p=document.createElement("div"); p.className="error"; p.textContent="✕ "+e; box.appendChild(p); });
+      return;
+    }
+    App.lastCalc = { shift, calc: App.calcTipout(shift, rules) };
+    App.renderResults(shift, App.lastCalc.calc);
+    document.getElementById("copy-msg").textContent = "";
+  };
+
+  document.getElementById("copy-btn").onclick = async () => {
+    if (!App.lastCalc) return;
+    const txt = App.summaryText(App.lastCalc.shift.date, App.lastCalc.shift.venue, App.lastCalc.calc);
+    try {
+      await navigator.clipboard.writeText(txt);
+      document.getElementById("copy-msg").textContent = "Copied — paste it into your notes or group chat.";
+    } catch(e) {
+      const ta = document.createElement("textarea");
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); document.getElementById("copy-msg").textContent = "Copied."; }
+      catch(err){ document.getElementById("copy-msg").textContent = "Copy failed — here is the text:\n" + txt; }
+      ta.remove();
+    }
+  };
+
+  document.getElementById("save-shift").onclick = () => {
+    if (!App.lastCalc) return;
+    const { shift, calc } = App.lastCalc;
+    App.state.history.push({ id: Date.now(), date: shift.date, venue: shift.venue,
+      totalTips: calc.totalTips, takeHome: calc.takeHome,
+      cardTips: shift.cardTips, cashTips: shift.cashTips });
+    App.saveState(App.state); App.renderHistory();
+    document.getElementById("copy-msg").textContent = "Shift saved to history.";
+  };
+
+  document.getElementById("dl-csv").onclick = () => {
+    if (!App.state.history.length) { alert("No shifts saved yet."); return; }
+    const q = s => '"' + String(s==null?"":s).replace(/"/g,'""') + '"';
+    const csv = "Date,Venue,Card Tips, Cash Tips,Total Tips,Take-Home\n" +
+      App.state.history.map(h => [h.date, q(h.venue), (h.cardTips/100).toFixed(2), (h.cashTips/100).toFixed(2),
+        (h.totalTips/100).toFixed(2), (h.takeHome/100).toFixed(2)].join(",")).join("\n");
+    const blob = new Blob([csv], {type:"text/csv"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "tipout-history.csv";
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  };
+
+  App.renderHistory();
+};
+
+globalThis.App = App;
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", App.init);
+  else App.init();
+}
+})();
+</script>
+</body>
+</html>

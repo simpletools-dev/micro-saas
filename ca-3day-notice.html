@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CA 3-Day Notice to Pay or Quit — Generator</title>
+<style>
+  :root { --accent:#1a3a6b; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; margin:0; color:#222; background:#f4f6f9; }
+  header { background:var(--accent); color:#fff; padding:14px 20px; }
+  header h1 { margin:0; font-size:20px; }
+  header p { margin:4px 0 0; font-size:13px; opacity:.85; }
+  .disclaimer { background:#fff8e1; border-bottom:2px solid #f0c419; padding:10px 20px; font-size:13px; }
+  main { display:grid; grid-template-columns:1fr 1fr; gap:20px; padding:20px; max-width:1400px; margin:0 auto; }
+  @media (max-width:900px){ main{grid-template-columns:1fr;} }
+  .card { background:#fff; border-radius:8px; padding:18px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  .card h2 { margin:0 0 12px; font-size:16px; color:var(--accent); }
+  label { display:block; font-size:12px; font-weight:600; margin:10px 0 4px; color:#444; }
+  input, select, textarea { width:100%; padding:8px; font-size:14px; border:1px solid #ccc; border-radius:5px; }
+  input[type=checkbox]{ width:auto; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .rent-row { display:grid; grid-template-columns:1.2fr 1.2fr 1fr auto; gap:8px; margin-bottom:8px; align-items:end; }
+  button { cursor:pointer; }
+  .btn { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:11px 18px; font-size:15px; margin-top:14px; }
+  .btn.secondary { background:#5a6b85; }
+  .btn.small { padding:6px 10px; font-size:13px; margin-top:0; }
+  .error { color:#b00020; font-size:13px; margin-top:6px; }
+  .warn { color:#8a5a00; font-size:13px; margin-top:6px; }
+  #notice-output { background:#fff; padding:36px 40px; font-family:Georgia,"Times New Roman",serif; font-size:13.5px; line-height:1.55; }
+  #notice-output h3 { text-align:center; text-transform:uppercase; letter-spacing:1px; margin-top:0; }
+  #notice-output .field { border-bottom:1px solid #999; padding:0 6px; font-weight:bold; }
+  #notice-output table.demand { width:100%; border-collapse:collapse; margin:12px 0; }
+  #notice-output table.demand td, #notice-output table.demand th { border:1px solid #555; padding:6px 8px; }
+  .sig { margin-top:28px; display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  .sig div { border-top:1px solid #000; padding-top:4px; font-size:12px; }
+  footer.page { text-align:center; font-size:12px; color:#777; padding:16px; }
+  @media print {
+    body { background:#fff; }
+    header, .disclaimer, #form-col, footer.page, .no-print { display:none !important; }
+    main { display:block; padding:0; max-width:none; }
+    .card { box-shadow:none; border-radius:0; padding:0; }
+    #notice-output { padding:0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>California 3-Day Notice to Pay or Quit — Generator</h1>
+  <p>Build a complete, printable notice. Deadline auto-computed (excludes Sat/Sun + CA judicial holidays).</p>
+</header>
+<div class="disclaimer">
+  <strong>Not legal advice.</strong> This tool produces general information based on California Code of Civil Procedure &sect;1161(2).
+  A defective notice can void an eviction. Verify the deadline against the court calendar and consider attorney review before serving.
+  All data stays in this browser (localStorage) — nothing is sent anywhere.
+</div>
+<main>
+  <div id="form-col">
+    <div class="card">
+      <h2>1. Parties &amp; Premises</h2>
+      <label>Landlord / authorized agent name</label>
+      <input id="f-landlord" placeholder="Jane Smith">
+      <label>Tenant name(s) — as on the lease</label>
+      <input id="f-tenant" placeholder="John Doe">
+      <label>Property street address</label>
+      <input id="f-addr" placeholder="123 Main St, Apt 4">
+      <div class="row">
+        <div><label>City</label><input id="f-city" placeholder="Bakersfield"></div>
+        <div><label>ZIP</label><input id="f-zip" placeholder="93301"></div>
+      </div>
+      <label>Lease / rental agreement date</label>
+      <input id="f-lease" type="date">
+    </div>
+    <div class="card">
+      <h2>2. Past-due rent demanded <span style="font-weight:normal;font-size:12px">(rent ONLY — no late fees, utilities, damages, or attorney fees)</span></h2>
+      <div id="rent-rows"></div>
+      <button class="btn small secondary" id="add-rent" type="button">+ Add rental period</button>
+      <div style="margin-top:10px;font-weight:bold">Total demanded: <span id="rent-total">$0.00</span></div>
+      <label style="margin-top:12px;font-weight:normal">
+        <input type="checkbox" id="f-rentonly"> I confirm the amount above is <strong>unpaid rent only</strong> — no late fees, utilities, damages, or other charges.
+      </label>
+    </div>
+    <div class="card">
+      <h2>3. Service date</h2>
+      <label>Date the notice will be served</label>
+      <input id="f-service" type="date">
+      <div id="deadline-line" style="margin-top:8px;font-weight:bold"></div>
+      <div class="warn">The service day is day 0. The 3-day period excludes Saturdays, Sundays, and CA judicial holidays. Confirm against the court calendar.</div>
+    </div>
+    <div class="card">
+      <h2>4. Where / how rent may be paid</h2>
+      <label>Name authorized to receive payment</label>
+      <input id="f-payee" placeholder="Jane Smith">
+      <label>Phone for payment inquiries</label>
+      <input id="f-phone" placeholder="(661) 555-0100">
+      <label>Address where rent may be paid in person</label>
+      <input id="f-payaddr" placeholder="123 Main St, Bakersfield, CA 93301">
+      <label>Usual days &amp; hours available (e.g., Mon–Fri, 9am–5pm)</label>
+      <input id="f-hours" placeholder="Monday–Friday, 9:00 AM – 5:00 PM">
+      <label>Accepted methods (check all that apply)</label>
+      <div id="methods">
+        <label style="font-weight:normal"><input type="checkbox" value="cash"> Cash (in person only)</label>
+        <label style="font-weight:normal"><input type="checkbox" value="check"> Personal check</label>
+        <label style="font-weight:normal"><input type="checkbox" value="cashier"> Cashier's check / money order</label>
+        <label style="font-weight:normal"><input type="checkbox" value="eft"> Electronic funds transfer</label>
+        <label style="font-weight:normal"><input type="checkbox" value="portal"> Online payment portal</label>
+        <label style="font-weight:normal"><input type="checkbox" value="app"> Payment app (Zelle / Venmo / etc.)</label>
+      </div>
+      <label>Payment details (portal URL, app handle, bank info…)</label>
+      <input id="f-paydetail" placeholder="Zelle: jane@example.com">
+    </div>
+    <div class="card">
+      <h2>5. Proof of service (fill after serving)</h2>
+      <label>Server name</label>
+      <input id="f-server" placeholder="Name of person who served the notice">
+      <label>Service method</label>
+      <select id="f-method">
+        <option value="">— select after serving —</option>
+        <option>Personal delivery to tenant</option>
+        <option>Substituted service + mailing</option>
+        <option>Posting + mailing (nail and mail)</option>
+      </select>
+      <div id="form-errors"></div>
+      <button class="btn" id="generate" type="button">Generate Notice</button>
+      <button class="btn secondary no-print" id="print-btn" type="button" style="display:none">Print / Save as PDF</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Notice preview</h2>
+    <div id="notice-output"><p style="color:#888">Fill in the form and click <strong>Generate Notice</strong> to preview the document here.</p></div>
+  </div>
+</main>
+<footer class="page">Micro-SaaS prototype · local only · no data leaves this browser · not legal advice</footer>
+
+<script>
+(function(){
+"use strict";
+
+/* CA judicial holidays (courts closed) — curated list. VERIFY against the court calendar before serving. */
+const HOLIDAYS = [
+  "2026-01-01","2026-01-19","2026-02-16","2026-03-31","2026-05-25","2026-06-19",
+  "2026-07-03","2026-09-07","2026-11-11","2026-11-26","2026-11-27","2026-12-25",
+  "2027-01-01","2027-01-18","2027-02-15","2027-03-31","2027-05-31","2027-06-18",
+  "2027-07-05","2027-09-06","2027-11-11","2027-11-25","2027-11-26","2027-12-24"
+];
+
+const App = {};
+
+App.parseISO = function(iso){
+  const p = iso.split("-").map(Number);
+  return new Date(p[0], p[1]-1, p[2]); // local, avoids UTC trap
+};
+App.toISO = function(d){
+  const m = String(d.getMonth()+1).padStart(2,"0"), day = String(d.getDate()).padStart(2,"0");
+  return d.getFullYear()+"-"+m+"-"+day;
+};
+App.addDays = function(iso, n){
+  const d = App.parseISO(iso); d.setDate(d.getDate()+n); return App.toISO(d);
+};
+App.isWeekend = function(iso){ const w = App.parseISO(iso).getDay(); return w===0 || w===6; };
+App.isHoliday = function(iso){ return HOLIDAYS.indexOf(iso) !== -1; };
+
+/* 3-day period: service day is day 0; count 3 days excluding Sat/Sun/judicial holidays. */
+App.computeDeadline = function(serviceISO, holidays){
+  holidays = holidays || HOLIDAYS;
+  let d = serviceISO, counted = 0, guard = 0;
+  while (counted < 3 && guard++ < 30) {
+    d = App.addDays(d, 1);
+    const w = App.parseISO(d).getDay();
+    if (w !== 0 && w !== 6 && holidays.indexOf(d) === -1) counted++;
+  }
+  return d;
+};
+
+App.toCents = function(s){
+  if (s === null || s === undefined || String(s).trim() === "") return 0;
+  const cleaned = String(s).replace(/[^0-9.\-]/g,"");
+  if (!/[0-9]/.test(cleaned)) return NaN; // garbage like "abc" is not $0
+  const n = Number(cleaned);
+  return isNaN(n) ? NaN : Math.round(n*100);
+};
+App.fmtCents = function(c){
+  const neg = c < 0; c = Math.abs(c);
+  return (neg?"-$":"$") + Math.floor(c/100).toLocaleString("en-US") + "." + String(c%100).padStart(2,"0");
+};
+App.sumRent = function(rows){
+  let total = 0;
+  for (const r of rows) { const c = App.toCents(r.amount); if (isNaN(c) || c < 0) return NaN; total += c; }
+  return total;
+};
+App.prettyDate = function(iso){
+  if (!iso) return "";
+  return App.parseISO(iso).toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+};
+
+App.validate = function(d){
+  const errs = [], warns = [];
+  if (!d.tenant.trim()) errs.push("Tenant name is required (as it appears on the lease).");
+  if (!d.addr.trim()) errs.push("Property address is required.");
+  if (!d.city.trim() || !d.zip.trim()) warns.push("City/ZIP missing — include the complete address.");
+  if (!d.rentRows.length || d.rentRows.every(r => !String(r.amount).trim()))
+    errs.push("At least one rental period with an amount due is required.");
+  const total = App.sumRent(d.rentRows);
+  if (isNaN(total)) errs.push("Rent amounts must be valid non-negative numbers.");
+  else if (total <= 0) errs.push("Total rent demanded must be greater than $0.");
+  if (!d.rentOnly) errs.push("You must confirm the demand is rent ONLY (no late fees, utilities, damages, or attorney fees). Including non-rent charges can void the notice.");
+  if (!d.serviceDate) errs.push("Service date is required to compute the deadline.");
+  if (!d.payee.trim()) warns.push("Payee name missing — the notice must state who may receive payment.");
+  if (!d.payaddr.trim()) warns.push("Payment address missing.");
+  if (!d.hours.trim()) warns.push("Days/hours for in-person payment missing.");
+  return { errs, warns, total };
+};
+
+App.esc = function(s){
+  return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+};
+
+App.generateHTML = function(d, deadlineISO){
+  const total = App.sumRent(d.rentRows);
+  const methodLabels = {cash:"Cash (in person only)",check:"Personal check",cashier:"Cashier's check / money order",eft:"Electronic funds transfer",portal:"Online payment portal",app:"Payment app (Zelle / Venmo / etc.)"};
+  const methods = d.methods.map(m => "<li>" + methodLabels[m] + "</li>").join("");
+  const rentRows = d.rentRows.filter(r => String(r.amount).trim()).map(r =>
+    "<tr><td>" + App.esc(r.from) + " through " + App.esc(r.to) + "</td><td style='text-align:right'>" +
+    App.fmtCents(App.toCents(r.amount)) + "</td></tr>").join("");
+  return (
+  "<h3>Three-Day Notice to Pay Rent or Quit</h3>" +
+  "<p style='text-align:center;font-size:12px'>California residential &middot; Code of Civil Procedure &sect;1161(2) &middot; " +
+  "General information only — not legal advice.</p>" +
+  "<p><strong>Date prepared:</strong> <span class='field'>&nbsp;" + App.esc(d.todayStr) + "&nbsp;</span></p>" +
+  "<p><strong>TO:</strong> <span class='field'>&nbsp;" + App.esc(d.tenant) + "&nbsp;</span>, and all other occupants in possession of:</p>" +
+  "<p><span class='field'>&nbsp;" + App.esc(d.addr) + ", " + App.esc(d.city) + ", CA " + App.esc(d.zip) + "&nbsp;</span></p>" +
+  "<p>YOU ARE HEREBY NOTIFIED that under the rental agreement dated <span class='field'>&nbsp;" + App.esc(d.leaseDate) + "&nbsp;</span> " +
+  "for the premises described above now occupied by you, the following rent is PAST DUE:</p>" +
+  "<table class='demand'><tr><th>Rental period</th><th style='text-align:right'>Rent due</th></tr>" +
+  rentRows +
+  "<tr><td><strong>Total past-due rent demanded</strong></td><td style='text-align:right'><strong>" + App.fmtCents(total) + "</strong></td></tr></table>" +
+  "<p>Within <strong>THREE (3) DAYS</strong> after service of this notice — <strong>excluding Saturdays, Sundays, and judicial holidays</strong> — " +
+  "you are required to either (1) <strong>PAY</strong> the total past-due rent stated above in full, using the payment instructions below; " +
+  "or (2) <strong>QUIT</strong> and deliver possession of the premises to the undersigned.</p>" +
+  "<p>This notice was served on <strong>" + App.prettyDate(d.serviceDate) + "</strong>. " +
+  "The three-day period expires at <strong>11:59 PM on " + App.prettyDate(deadlineISO) + "</strong>.</p>" +
+  "<p><strong>Rent may be paid to:</strong> <span class='field'>&nbsp;" + App.esc(d.payee) + "&nbsp;</span><br>" +
+  "<strong>Address:</strong> <span class='field'>&nbsp;" + App.esc(d.payaddr) + "&nbsp;</span><br>" +
+  "<strong>Phone:</strong> <span class='field'>&nbsp;" + App.esc(d.phone) + "&nbsp;</span><br>" +
+  "<strong>Usual days/hours:</strong> <span class='field'>&nbsp;" + App.esc(d.hours) + "&nbsp;</span></p>" +
+  (methods ? "<p><strong>Accepted payment methods:</strong></p><ul>" + methods + "</ul>" +
+    (d.paydetail.trim() ? "<p><strong>Payment details:</strong> " + App.esc(d.paydetail) + "</p>" : "") : "") +
+  "<p>If you fail to pay the total rent demanded <strong>or</strong> vacate and surrender possession within the three-day period, " +
+  "the undersigned intends to commence legal proceedings for unlawful detainer, which may result in a money judgment, forfeiture of the lease, " +
+  "and recovery of court costs and attorney's fees where authorized by law.</p>" +
+  "<p><strong>Do not include</strong> late fees, utility charges, damages, attorney fees, or other non-rent amounts in the demand above — " +
+  "demanding non-rent charges can invalidate this notice.</p>" +
+  "<div class='sig'><div>Landlord / Authorized agent signature<br><br><br>Date: _______________</div>" +
+  "<div>Print name: " + App.esc(d.landlord) + "<br><br><br>Phone: " + App.esc(d.phone) + "</div></div>" +
+  "<h3 style='margin-top:32px'>Proof of Service</h3>" +
+  "<p>I, <span class='field'>&nbsp;" + App.esc(d.server) + "&nbsp;</span>, declare that I served this notice by " +
+  "<span class='field'>&nbsp;" + App.esc(d.method) + "&nbsp;</span> on <span class='field'>&nbsp;" + App.prettyDate(d.serviceDate) + "&nbsp;</span>.</p>" +
+  "<div class='sig'><div>Server signature<br><br><br>Date: _______________</div><div></div></div>"
+  );
+};
+
+App.collect = function(){
+  const v = id => document.getElementById(id).value;
+  const rentRows = [];
+  document.querySelectorAll("#rent-rows .rent-row").forEach(row => {
+    rentRows.push({
+      from: row.querySelector(".r-from").value,
+      to: row.querySelector(".r-to").value,
+      amount: row.querySelector(".r-amt").value
+    });
+  });
+  const methods = [];
+  document.querySelectorAll("#methods input:checked").forEach(c => methods.push(c.value));
+  return {
+    landlord: v("f-landlord"), tenant: v("f-tenant"), addr: v("f-addr"), city: v("f-city"), zip: v("f-zip"),
+    leaseDate: v("f-lease"), rentRows, rentOnly: document.getElementById("f-rentonly").checked,
+    serviceDate: v("f-service"), payee: v("f-payee"), phone: v("f-phone"), payaddr: v("f-payaddr"),
+    hours: v("f-hours"), methods, paydetail: v("f-paydetail"),
+    server: v("f-server"), method: v("f-method"),
+    todayStr: new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})
+  };
+};
+
+App.save = function(d){
+  try { localStorage.setItem("msaas_ca3day_v1", JSON.stringify(d)); } catch(e){}
+};
+App.load = function(){
+  try { const s = localStorage.getItem("msaas_ca3day_v1"); return s ? JSON.parse(s) : null; } catch(e){ return null; }
+};
+
+App.addRentRow = function(from, to, amount){
+  const wrap = document.getElementById("rent-rows");
+  const div = document.createElement("div");
+  div.className = "rent-row";
+  div.innerHTML =
+    '<div><label>Period from</label><input type="date" class="r-from"></div>' +
+    '<div><label>Period to</label><input type="date" class="r-to"></div>' +
+    '<div><label>Amount $</label><input class="r-amt" inputmode="decimal" placeholder="0.00"></div>' +
+    '<div><button type="button" class="btn small secondary r-del">✕</button></div>';
+  if (from) div.querySelector(".r-from").value = from;
+  if (to) div.querySelector(".r-to").value = to;
+  if (amount) div.querySelector(".r-amt").value = amount;
+  div.querySelector(".r-del").onclick = () => { div.remove(); App.recalc(); };
+  div.querySelectorAll("input").forEach(i => i.addEventListener("input", App.recalc));
+  wrap.appendChild(div);
+};
+
+App.recalc = function(){
+  const rows = [];
+  document.querySelectorAll("#rent-rows .rent-row").forEach(row => rows.push({amount: row.querySelector(".r-amt").value}));
+  const t = App.sumRent(rows);
+  document.getElementById("rent-total").textContent = isNaN(t) ? "invalid amount" : App.fmtCents(t);
+  const svc = document.getElementById("f-service").value;
+  document.getElementById("deadline-line").textContent = svc
+    ? "Deadline: " + App.prettyDate(App.computeDeadline(svc)) + " (11:59 PM)"
+    : "";
+};
+
+App.init = function(){
+  const saved = App.load();
+  App.addRentRow();
+  if (saved) {
+    const set = (id,val) => { if (val!=null) document.getElementById(id).value = val; };
+    set("f-landlord",saved.landlord); set("f-tenant",saved.tenant); set("f-addr",saved.addr);
+    set("f-city",saved.city); set("f-zip",saved.zip); set("f-lease",saved.leaseDate);
+    set("f-service",saved.serviceDate); set("f-payee",saved.payee); set("f-phone",saved.phone);
+    set("f-payaddr",saved.payaddr); set("f-hours",saved.hours); set("f-paydetail",saved.paydetail);
+    set("f-server",saved.server); set("f-method",saved.method);
+    if (saved.rentOnly) document.getElementById("f-rentonly").checked = true;
+    document.getElementById("rent-rows").innerHTML = "";
+    (saved.rentRows && saved.rentRows.length ? saved.rentRows : [{}]).forEach(r => App.addRentRow(r.from, r.to, r.amount));
+    (saved.methods||[]).forEach(m => {
+      const c = document.querySelector('#methods input[value="'+m+'"]'); if (c) c.checked = true;
+    });
+  }
+  document.getElementById("add-rent").onclick = () => App.addRentRow();
+  document.getElementById("f-service").addEventListener("input", App.recalc);
+  App.recalc();
+  document.getElementById("generate").onclick = () => {
+    const d = App.collect();
+    const { errs, warns, total } = App.validate(d);
+    const box = document.getElementById("form-errors");
+    box.innerHTML = "";
+    warns.forEach(w => { const p=document.createElement("div"); p.className="warn"; p.textContent="⚠ "+w; box.appendChild(p); });
+    if (errs.length) {
+      errs.forEach(e => { const p=document.createElement("div"); p.className="error"; p.textContent="✕ "+e; box.appendChild(p); });
+      return;
+    }
+    App.save(d);
+    const deadline = App.computeDeadline(d.serviceDate);
+    document.getElementById("notice-output").innerHTML = App.generateHTML(d, deadline);
+    document.getElementById("print-btn").style.display = "inline-block";
+    document.getElementById("notice-output").scrollIntoView({behavior:"smooth", block:"start"});
+  };
+  document.getElementById("print-btn").onclick = () => window.print();
+};
+
+globalThis.App = App;
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", App.init);
+  else App.init();
+}
+})();
+</script>
+</body>
+</html>
