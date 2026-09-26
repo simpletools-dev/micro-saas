@@ -35,12 +35,20 @@
   .sig { margin-top:28px; display:grid; grid-template-columns:1fr 1fr; gap:24px; }
   .sig div { border-top:1px solid #000; padding-top:4px; font-size:12px; }
   footer.page { text-align:center; font-size:12px; color:#777; padding:16px; }
+  .pro-card { border:2px solid #d4a017; background:#fffdf5; }
+  .pro-card h2 { color:#8a5a00; }
+  .pro-badge { display:inline-block; font-size:11px; background:#d4a017; color:#fff; border-radius:4px; padding:2px 8px; vertical-align:middle; }
+  .btn.pro-btn { background:#b8860b; }
+  .pro-letterhead { text-align:center; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; font-size:11px; letter-spacing:2px; color:#555; border-bottom:2px solid #1a3a6b; padding-bottom:8px; margin-bottom:16px; }
+  .pro-letterhead span { letter-spacing:normal; font-size:12px; color:#333; }
+  .pro-docfoot { margin-top:24px; padding-top:8px; border-top:1px solid #999; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; font-size:11px; color:#666; text-align:center; }
   @media print {
     body { background:#fff; }
     header, .disclaimer, #form-col, footer.page, .no-print { display:none !important; }
     main { display:block; padding:0; max-width:none; }
     .card { box-shadow:none; border-radius:0; padding:0; }
     #notice-output { padding:0; }
+    body.pro .pos-h { page-break-before:always; margin-top:0; }
   }
 </style>
 </head>
@@ -124,6 +132,13 @@
       <button class="btn" id="generate" type="button">Generate Notice</button>
       <button class="btn secondary no-print" id="print-btn" type="button" style="display:none">Print / Save as PDF</button>
     </div>
+    <div class="card pro-card">
+      <h2>Pro PDF <span class="pro-badge">PRO</span></h2>
+      <p style="font-size:13px;color:#555;margin:0 0 8px">Court-ready formatting — letterhead, document ID, and proof of service on its own page. One-time <strong>$7</strong>, yours forever.</p>
+      <div id="pro-status" style="font-size:13px;margin-bottom:8px"></div>
+      <button class="btn pro-btn" id="pro-buy" type="button">Get the Pro PDF — $7</button>
+      <button class="btn pro-btn" id="pro-print" type="button" style="display:none">Download Pro PDF</button>
+    </div>
   </div>
   <div class="card">
     <h2>Notice preview</h2>
@@ -135,6 +150,16 @@
 <script>
 (function(){
 "use strict";
+
+/* ---- Monetization (Pro PDF) ----
+   Paste your Gumroad or Stripe payment link between the quotes below.
+   Your checkout's confirmation page should link buyers back to:
+     https://simpletools-dev.github.io/micro-saas/ca-3day-notice?paid=1
+   so the Pro PDF unlocks automatically. While CHECKOUT_URL is empty, the buy
+   button collects waitlist emails instead (free demand signal). */
+const CHECKOUT_URL = "";
+const PRO_PRICE = "$7";
+const WAITLIST_EMAIL = "qxnvktz841@gmail.com";
 
 /* CA judicial holidays (courts closed) — curated list. VERIFY against the court calendar before serving. */
 const HOLIDAYS = [
@@ -215,6 +240,17 @@ App.esc = function(s){
   return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 };
 
+/* Pro unlock state (localStorage flag set when buyer returns from checkout with ?paid=1). */
+App.isPro = function(){
+  try { return localStorage.getItem("msaas_pro_notice") === "1"; } catch(e){ return false; }
+};
+App.unlockPro = function(){
+  try { localStorage.setItem("msaas_pro_notice", "1"); } catch(e){}
+};
+App.docId = function(){
+  return "ST-" + Date.now().toString(36).toUpperCase();
+};
+
 App.generateHTML = function(d, deadlineISO){
   const total = App.sumRent(d.rentRows);
   const methodLabels = {cash:"Cash (in person only)",check:"Personal check",cashier:"Cashier's check / money order",eft:"Electronic funds transfer",portal:"Online payment portal",app:"Payment app (Zelle / Venmo / etc.)"};
@@ -222,7 +258,14 @@ App.generateHTML = function(d, deadlineISO){
   const rentRows = d.rentRows.filter(r => String(r.amount).trim()).map(r =>
     "<tr><td>" + App.esc(r.from) + " through " + App.esc(r.to) + "</td><td style='text-align:right'>" +
     App.fmtCents(App.toCents(r.amount)) + "</td></tr>").join("");
+  const proHead = App.isPro()
+    ? "<div class='pro-letterhead'>SIMPLE TOOLS PRO &middot; COURT-READY FORMATTING<br><span>Document " + App.esc(d.docId) + " &middot; prepared " + App.esc(d.todayStr) + "</span></div>"
+    : "";
+  const proFoot = App.isPro()
+    ? "<div class='pro-docfoot'>Formatted with Simple Tools Pro &middot; general information only — not legal advice.</div>"
+    : "";
   return (
+  proHead +
   "<h3>Three-Day Notice to Pay Rent or Quit</h3>" +
   "<p style='text-align:center;font-size:12px'>California residential &middot; Code of Civil Procedure &sect;1161(2) &middot; " +
   "General information only — not legal advice.</p>" +
@@ -252,10 +295,11 @@ App.generateHTML = function(d, deadlineISO){
   "demanding non-rent charges can invalidate this notice.</p>" +
   "<div class='sig'><div>Landlord / Authorized agent signature<br><br><br>Date: _______________</div>" +
   "<div>Print name: " + App.esc(d.landlord) + "<br><br><br>Phone: " + App.esc(d.phone) + "</div></div>" +
-  "<h3 style='margin-top:32px'>Proof of Service</h3>" +
+  "<h3 class='pos-h' style='margin-top:32px'>Proof of Service</h3>" +
   "<p>I, <span class='field'>&nbsp;" + App.esc(d.server) + "&nbsp;</span>, declare that I served this notice by " +
   "<span class='field'>&nbsp;" + App.esc(d.method) + "&nbsp;</span> on <span class='field'>&nbsp;" + App.prettyDate(d.serviceDate) + "&nbsp;</span>.</p>" +
-  "<div class='sig'><div>Server signature<br><br><br>Date: _______________</div><div></div></div>"
+  "<div class='sig'><div>Server signature<br><br><br>Date: _______________</div><div></div></div>" +
+  proFoot
   );
 };
 
@@ -316,6 +360,24 @@ App.recalc = function(){
     : "";
 };
 
+App.doGenerate = function(){
+  const d = App.collect();
+  const { errs, warns } = App.validate(d);
+  const box = document.getElementById("form-errors");
+  box.innerHTML = "";
+  warns.forEach(w => { const p=document.createElement("div"); p.className="warn"; p.textContent="⚠ "+w; box.appendChild(p); });
+  if (errs.length) {
+    errs.forEach(e => { const p=document.createElement("div"); p.className="error"; p.textContent="✕ "+e; box.appendChild(p); });
+    return false;
+  }
+  d.docId = App.docId();
+  App.save(d);
+  const deadline = App.computeDeadline(d.serviceDate);
+  document.getElementById("notice-output").innerHTML = App.generateHTML(d, deadline);
+  document.getElementById("print-btn").style.display = "inline-block";
+  return true;
+};
+
 App.init = function(){
   const saved = App.load();
   App.addRentRow();
@@ -337,22 +399,44 @@ App.init = function(){
   document.getElementById("f-service").addEventListener("input", App.recalc);
   App.recalc();
   document.getElementById("generate").onclick = () => {
-    const d = App.collect();
-    const { errs, warns, total } = App.validate(d);
-    const box = document.getElementById("form-errors");
-    box.innerHTML = "";
-    warns.forEach(w => { const p=document.createElement("div"); p.className="warn"; p.textContent="⚠ "+w; box.appendChild(p); });
-    if (errs.length) {
-      errs.forEach(e => { const p=document.createElement("div"); p.className="error"; p.textContent="✕ "+e; box.appendChild(p); });
-      return;
-    }
-    App.save(d);
-    const deadline = App.computeDeadline(d.serviceDate);
-    document.getElementById("notice-output").innerHTML = App.generateHTML(d, deadline);
-    document.getElementById("print-btn").style.display = "inline-block";
-    document.getElementById("notice-output").scrollIntoView({behavior:"smooth", block:"start"});
+    if (App.doGenerate()) document.getElementById("notice-output").scrollIntoView({behavior:"smooth", block:"start"});
   };
   document.getElementById("print-btn").onclick = () => window.print();
+  /* Pro unlock (?paid=1 from checkout) + buy flow */
+  try {
+    if (/\bpaid=1\b/.test(location.search)) {
+      App.unlockPro();
+      history.replaceState(null, "", location.pathname);
+    }
+  } catch(e){}
+  const proStatus = document.getElementById("pro-status");
+  const proBuy = document.getElementById("pro-buy");
+  const proPrint = document.getElementById("pro-print");
+  if (App.isPro()) {
+    proStatus.innerHTML = "<strong style='color:#0f6b3a'>✓ Pro unlocked</strong> — your notices now print with court-ready formatting.";
+    proBuy.style.display = "none";
+    proPrint.style.display = "inline-block";
+  } else if (!CHECKOUT_URL) {
+    proStatus.textContent = "Checkout isn't live yet — click below and we'll email you the moment it's ready.";
+  }
+  proBuy.onclick = () => {
+    if (CHECKOUT_URL) {
+      window.open(CHECKOUT_URL, "_blank", "noopener");
+      proStatus.textContent = "Complete checkout in the new tab — your confirmation link unlocks the Pro PDF automatically.";
+    } else {
+      location.href = "mailto:" + WAITLIST_EMAIL +
+        "?subject=" + encodeURIComponent("[waitlist] Pro PDF — CA 3-Day Notice") +
+        "&body=" + encodeURIComponent("Email me when the " + PRO_PRICE + " print-ready PDF is ready to buy.");
+    }
+  };
+  proPrint.onclick = () => {
+    if (!App.doGenerate()) return;
+    document.body.classList.add("pro");
+    const done = () => { document.body.classList.remove("pro"); window.removeEventListener("afterprint", done); };
+    window.addEventListener("afterprint", done);
+    setTimeout(done, 8000);
+    window.print();
+  };
 };
 
 globalThis.App = App;

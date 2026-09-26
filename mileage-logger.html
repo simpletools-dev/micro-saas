@@ -34,11 +34,21 @@
   .error { color:#b00020; font-size:13px; margin-top:6px; }
   .rate-line { font-size:13px; color:#444; margin-top:8px; }
   footer.page { text-align:center; font-size:12px; color:#777; padding:16px; }
+  .pro-card { border:2px solid #d4a017; background:#fffdf5; }
+  .pro-card h2 { color:#8a5a00; }
+  .pro-badge { display:inline-block; font-size:11px; background:#d4a017; color:#fff; border-radius:4px; padding:2px 8px; vertical-align:middle; }
+  .btn.pro-btn { background:#b8860b; }
+  .pro-only { display:none; }
+  .pro-report-head { text-align:center; border-bottom:2px solid #0f6b3a; padding-bottom:10px; margin-bottom:16px; }
+  .pro-report-head h2 { margin:0 0 4px; color:#0f6b3a; font-size:20px; }
+  .pro-report-foot { margin-top:24px; font-size:12px; }
+  .pro-report-foot .sigline { margin-top:36px; border-top:1px solid #000; padding-top:4px; max-width:320px; }
   @media print {
     body { background:#fff; }
     header, .note, #entry-card, #actions-card, footer.page, .no-print { display:none !important; }
     main { display:block; padding:0; }
     .card { box-shadow:none; }
+    body.pro .pro-only { display:block; }
   }
 </style>
 </head>
@@ -53,6 +63,10 @@
   Data stays in this browser. General information only — not tax advice.
 </div>
 <main>
+  <div class="pro-only pro-report-head">
+    <h2>Business Mileage Deduction Report</h2>
+    <div id="pro-head-sub" style="font-size:13px;color:#444"></div>
+  </div>
   <div class="card" id="entry-card">
     <h2>Log a trip</h2>
     <div class="grid3">
@@ -104,12 +118,36 @@
     <label style="margin-top:12px">Restore from backup</label>
     <input type="file" id="restore" accept=".json">
   </div>
+
+  <div class="card pro-card">
+    <h2>Pro Report <span class="pro-badge">PRO</span></h2>
+    <p style="font-size:13px;color:#555;margin:0 0 8px">IRS-ready PDF report pack — formatted deduction report with attestation and signature line. One-time <strong>$9</strong>.</p>
+    <div id="pro-status" style="font-size:13px;margin-bottom:8px"></div>
+    <button class="btn pro-btn" id="pro-buy" type="button">Get the Pro Report — $9</button>
+    <button class="btn pro-btn" id="pro-print" type="button" style="display:none">Download Pro Report</button>
+  </div>
+
+  <div class="pro-only pro-report-foot">
+    <p>I declare that this mileage log is true, correct, and complete, and that the trips listed were ordinary and necessary business travel.</p>
+    <div class="sigline">Signature &nbsp;&nbsp;&nbsp;&nbsp; Date: <span id="pro-foot-date"></span></div>
+    <p style="color:#777">General information only — not tax advice.</p>
+  </div>
 </main>
 <footer class="page">Micro-SaaS prototype · local only · not tax advice</footer>
 
 <script>
 (function(){
 "use strict";
+
+/* ---- Monetization (Pro report) ----
+   Paste your Gumroad or Stripe payment link between the quotes below.
+   Your checkout's confirmation page should link buyers back to:
+     https://simpletools-dev.github.io/micro-saas/mileage-logger?paid=1
+   so the Pro report unlocks automatically. While CHECKOUT_URL is empty, the buy
+   button collects waitlist emails instead (free demand signal). */
+const CHECKOUT_URL = "";
+const PRO_PRICE = "$9";
+const WAITLIST_EMAIL = "qxnvktz841@gmail.com";
 
 /* IRS standard mileage rates, business use, cents/mile. Source: irs.gov, verified 2026-09-26.
    2026 had a mid-year increase (first since 2022): 72.5¢ Jan–Jun, 76¢ Jul–Dec. */
@@ -183,6 +221,14 @@ App.toCSV = function(trips){
 };
 
 App.esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+/* Pro unlock state (localStorage flag set when buyer returns from checkout with ?paid=1). */
+App.isPro = function(){
+  try { return localStorage.getItem("msaas_pro_mileage") === "1"; } catch(e){ return false; }
+};
+App.unlockPro = function(){
+  try { localStorage.setItem("msaas_pro_mileage", "1"); } catch(e){}
+};
 
 /* ---- storage ---- */
 App.KEY = "msaas_mileage_v1";
@@ -317,6 +363,53 @@ App.init = function(){
     };
     r.readAsText(f);
   });
+
+  /* Pro unlock (?paid=1 from checkout) + buy flow */
+  try {
+    if (/\bpaid=1\b/.test(location.search)) {
+      App.unlockPro();
+      history.replaceState(null, "", location.pathname);
+    }
+  } catch(e){}
+  const proStatus = document.getElementById("pro-status");
+  const proBuy = document.getElementById("pro-buy");
+  const proPrint = document.getElementById("pro-print");
+  if (App.isPro()) {
+    proStatus.innerHTML = "<strong style='color:#0f6b3a'>✓ Pro unlocked</strong> — your reports now print with the IRS-ready Pro format.";
+    proBuy.style.display = "none";
+    proPrint.style.display = "inline-block";
+  } else if (!CHECKOUT_URL) {
+    proStatus.textContent = "Checkout isn't live yet — click below and we'll email you the moment it's ready.";
+  }
+  proBuy.onclick = () => {
+    if (CHECKOUT_URL) {
+      window.open(CHECKOUT_URL, "_blank", "noopener");
+      proStatus.textContent = "Complete checkout in the new tab — your confirmation link unlocks the Pro report automatically.";
+    } else {
+      location.href = "mailto:" + WAITLIST_EMAIL +
+        "?subject=" + encodeURIComponent("[waitlist] Pro Report — Mileage Logger") +
+        "&body=" + encodeURIComponent("Email me when the " + PRO_PRICE + " IRS-ready PDF report is ready to buy.");
+    }
+  };
+  proPrint.onclick = () => {
+    const trips = App.filtered();
+    if (!trips.length) { alert("Log at least one trip first (or clear the year/month filter)."); return; }
+    const s = App.summarize(trips);
+    const y = document.getElementById("f-year").value || "all years";
+    const mSel = document.getElementById("f-month");
+    const m = mSel.value ? mSel.options[mSel.selectedIndex].text : "all months";
+    const today = new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
+    document.getElementById("pro-head-sub").textContent =
+      "Period: " + m + " " + y + " · " + s.count + " trips · " +
+      s.miles.toLocaleString("en-US") + " miles · deduction " + App.fmtCents(s.valueCents) +
+      " · prepared " + today;
+    document.getElementById("pro-foot-date").textContent = today;
+    document.body.classList.add("pro");
+    const done = () => { document.body.classList.remove("pro"); window.removeEventListener("afterprint", done); };
+    window.addEventListener("afterprint", done);
+    setTimeout(done, 8000);
+    window.print();
+  };
 
   App.refreshYears(); App.render();
 };
