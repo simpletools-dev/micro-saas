@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://simpletools-dev.github.io/micro-saas/sitemap.xml
