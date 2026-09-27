@@ -141,7 +141,7 @@
 
 /* ---- Monetization (Pro report) ----
    Paste your Gumroad or Stripe payment link between the quotes below.
-   Your checkout's confirmation page should link buyers back to:
+   Buyers get the unlock link from the product's Gumroad receipt custom message:
      https://simpletools-dev.github.io/micro-saas/mileage-logger?paid=1
    so the Pro report unlocks automatically. While CHECKOUT_URL is empty, the buy
    button collects waitlist emails instead (free demand signal). */
@@ -384,7 +384,7 @@ App.init = function(){
   proBuy.onclick = () => {
     if (CHECKOUT_URL) {
       window.open(CHECKOUT_URL, "_blank", "noopener");
-      proStatus.textContent = "Complete checkout in the new tab — your confirmation link unlocks the Pro report automatically.";
+      proStatus.textContent = "Complete checkout in the new tab — the unlock link in your Gumroad receipt unlocks the Pro report automatically.";
     } else {
       location.href = "mailto:" + WAITLIST_EMAIL +
         "?subject=" + encodeURIComponent("[waitlist] Pro Report — Mileage Logger") +
