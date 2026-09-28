@@ -1,7 +1,9 @@
-// Quote form handler — front-end only.
+// Quote form handler.
 // The form POSTs JSON to window.SITE_CONFIG.formEndpoint (set in a <script> tag
-// near the bottom of each page). See README.md for where to get an endpoint
-// (e.g. a free form-backend service). No endpoint = polite error, nothing breaks.
+// near the bottom of each page). The endpoint is a Google Apps Script web app
+// that emails each lead. The request uses no-cors + text/plain so it works
+// from the static site without a CORS preflight; the response is opaque, so
+// success is assumed once the request resolves.
 (function () {
   var form = document.getElementById("quote-form");
   if (!form) return;
@@ -28,22 +30,19 @@
       return;
     }
     if (!endpoint) {
-      show(false, "Thanks — our online form isn't switched on yet. Please try again in a moment.");
+      show(false, "Thanks — our online form isn't switched on yet. Please tap the call button above and we'll take your details by phone.");
       return;
     }
     fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify(data)
-    }).then(function (r) {
-      if (r.ok) {
-        form.reset();
-        show(true, "Request received — we'll call you back shortly to confirm your appointment window.");
-      } else {
-        show(false, "Something went wrong sending your request. Please try again in a moment.");
-      }
+    }).then(function () {
+      form.reset();
+      show(true, "Request received — we'll call you back shortly to confirm your appointment window.");
     }).catch(function () {
-      show(false, "Something went wrong sending your request. Please try again in a moment.");
+      show(false, "Something went wrong sending your request. Please call us instead — tap the call button above.");
     });
   });
 })();
