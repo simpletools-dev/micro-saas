@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solar by ZIP — Solar Savings Estimates for Every California ZIP Code</title>
+<meta name="description" content="Free solar savings estimates for 2,593 California ZIP codes. Look up your ZIP for recommended system size, annual production, and 25-year savings vs the grid — built from NREL sunshine data and EIA electricity rates.">
+<link rel="canonical" href="https://simpletools-dev.github.io/micro-saas/venture/solar-by-zip/">
+<style>
+:root{--ink:#0f1b2d;--muted:#5a6b82;--bg:#f6f8fb;--card:#fff;--blue:#1565d8;--line:#e3e9f2}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6}
+.wrap{max-width:880px;margin:0 auto;padding:0 18px}
+header.site{background:#0b1f3a;color:#fff;padding:14px 0}
+header.site a{color:#fff;text-decoration:none;font-weight:700}
+.hero{background:linear-gradient(135deg,#0b1f3a,#123a6b);color:#fff;padding:52px 0 44px}
+.hero h1{font-size:clamp(1.8rem,5.5vw,2.7rem);line-height:1.2;margin-bottom:10px}
+.hero p{opacity:.88;max-width:640px;font-size:1.05rem}
+.searchbox{margin-top:22px;position:relative;max-width:520px}
+.searchbox input{width:100%;padding:15px 18px;font-size:1.05rem;border-radius:10px;border:0;outline:none}
+#results{position:absolute;top:105%;left:0;right:0;background:#fff;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.25);overflow:hidden;display:none;z-index:10}
+#results a{display:block;padding:11px 16px;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+#results a:hover{background:#f0f5fb}
+#results a span{color:var(--muted);font-size:.85rem}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.stat .k{font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px}
+.stat .v{font-size:1.4rem;font-weight:800}
+section.block{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px;margin:0 0 20px}
+h2{font-size:1.25rem;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}
+td a{color:var(--blue);font-weight:600}
+footer.site{color:var(--muted);font-size:.82rem;padding:26px 0 40px}
+.disclaimer{background:#f0f3f7;border:1px solid var(--line);border-radius:8px;padding:14px;font-size:.85rem;color:var(--muted);margin:0 0 20px}
+</style>
+</head>
+<body>
+<header class="site"><div class="wrap"><a href="https://simpletools-dev.github.io/micro-saas/venture/solar-by-zip/">Solar by ZIP</a></div></header>
+<div class="hero"><div class="wrap">
+<h1>How Much Can Solar Save at Your California Address?</h1>
+<p>Free estimates for <strong>2,593 California ZIP codes</strong> — recommended system size, annual production, and 25-year savings vs the grid, computed from NREL sunshine data and the latest EIA electricity rates.</p>
+<div class="searchbox">
+<input id="q" type="text" inputmode="numeric" placeholder="Enter your ZIP code (e.g. 93306)" autocomplete="off" aria-label="Search ZIP codes">
+<div id="results"></div>
+</div>
+</div></div>
+<div class="wrap" style="margin-top:0">
+
+<div class="stats">
+<div class="stat"><div class="k">ZIP codes covered</div><div class="v">2,593</div></div>
+<div class="stat"><div class="k">Avg. sunshine</div><div class="v">6.01 <small style="font-size:.85rem;color:var(--muted)">kWh/m&sup2;/day</small></div></div>
+<div class="stat"><div class="k">Typical system</div><div class="v">3.7 <small style="font-size:.85rem;color:var(--muted)">kW</small></div></div>
+<div class="stat"><div class="k">Avg. year-1 savings</div><div class="v">$1,850</div></div>
+</div>
+
+<section class="block">
+<h2>How the estimate works</h2>
+<p style="font-size:.95rem;color:#3d4a5e">For each ZIP we take the area's average sunshine (NREL PVWatts, kWh/m&sup2;/day), size a system to cover a typical California home's 6,500 kWh/year of use, and value its production at the current EIA California residential rate of 33.61&cent;/kWh (July 2026). The 25-year figure is a range — flat rates on the low end, 2.5%/year rate growth on the high end — before system cost and incentives. Every ZIP page lists its full assumptions. <strong>Estimates, not quotes.</strong></p>
+</section>
+
+<section class="block">
+<h2>Sunniest California ZIPs</h2>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:8px">Highest average sunshine — where each kW of panels produces the most.</p>
+<table>
+<tr><th>ZIP</th><th>City</th><th>County</th><th>Sunshine (kWh/m&sup2;/day)</th><th>Est. year-1 savings</th></tr>
+<tr><td><a href="zips/92222.html">92222</a></td><td>Bard</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92227.html">92227</a></td><td>Brawley</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92231.html">92231</a></td><td>Calexico</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92232.html">92232</a></td><td>Calexico</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92233.html">92233</a></td><td>Calipatria</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92243.html">92243</a></td><td>El Centro</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92244.html">92244</a></td><td>El Centro</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92249.html">92249</a></td><td>Heber</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92250.html">92250</a></td><td>Holtville</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92251.html">92251</a></td><td>Imperial</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92257.html">92257</a></td><td>Niland</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92259.html">92259</a></td><td>Ocotillo</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92266.html">92266</a></td><td>Palo Verde</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92273.html">92273</a></td><td>Seeley</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92275.html">92275</a></td><td>Salton City</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92281.html">92281</a></td><td>Westmorland</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92283.html">92283</a></td><td>Winterhaven</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/92331.html">92331</a></td><td>Fontana</td><td>Imperial</td><td>6.74</td><td>$1,970</td></tr>
+<tr><td><a href="zips/91701.html">91701</a></td><td>Rancho Cucamonga</td><td>San Bernardino</td><td>6.72</td><td>$1,960</td></tr>
+<tr><td><a href="zips/91708.html">91708</a></td><td>Chino</td><td>San Bernardino</td><td>6.72</td><td>$1,960</td></tr>
+</table>
+</section>
+
+<div class="disclaimer"><strong>Estimates, not quotes.</strong> All figures are planning estimates from public datasets (NREL, EIA, GeoNames), data as of 2026-09-28. Real savings depend on your roof, shading, and utility rate plan. Solar by ZIP may earn a commission from installer referrals at no cost to you.</div>
+
+</div>
+<footer class="site"><div class="wrap">
+<p>Solar by ZIP &middot; Solar savings estimates for every California ZIP code.<br>
+Sunshine: NREL PVWatts v8 &middot; Rates: U.S. EIA Electric Power Monthly &middot; ZIP data: GeoNames</p>
+</div></footer>
+<script>
+let ZIPS=[];
+fetch('search.json').then(r=>r.json()).then(d=>{ZIPS=d;}).catch(()=>{});
+const q=document.getElementById('q'),res=document.getElementById('results');
+q.addEventListener('input',()=>{
+  const v=q.value.trim().toLowerCase();
+  if(v.length<2){res.style.display='none';return;}
+  const hits=ZIPS.filter(z=>z.z.startsWith(v)||z.c.toLowerCase().includes(v)).slice(0,12);
+  if(!hits.length){res.style.display='none';return;}
+  res.innerHTML=hits.map(h=>'<a href="zips/'+h.z+'.html"><strong>'+h.z+'</strong> — '+h.c+' <span>'+h.co+'</span></a>').join('');
+  res.style.display='block';
+});
+document.addEventListener('click',e=>{if(!e.target.closest('.searchbox'))res.style.display='none';});
+</script>
+</body>
+</html>
