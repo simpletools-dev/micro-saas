@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://americanmade.si/sitemap.xml
