@@ -4,6 +4,10 @@
   var nav = document.getElementById("site-nav");
   if (toggle && nav) {
     toggle.addEventListener("click", function () { nav.classList.toggle("open"); });
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.addEventListener("click", function () {
+      toggle.setAttribute("aria-expanded", nav.classList.contains("open") ? "true" : "false");
+    });
   }
 })();
 
